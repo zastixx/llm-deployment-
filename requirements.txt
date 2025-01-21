@@ -1,3 +1,4 @@
+gunicorn
 Flask==2.3.3
 flask-cors==3.0.10
 langchain==0.0.288
