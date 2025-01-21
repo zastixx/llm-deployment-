@@ -47,7 +47,7 @@ llm = Together(
     temperature=0.7,
     max_tokens=1024,
     top_k=1,
-    together_api_key=os.environ.get('T_API', 'your_api_key_here')
+    together_api_key=os.environ.get('T_API', '2042c792ea10764e6fdc41d0b039bbf0098b10fa74da17fe7942aceff43ba7bf')
 )
 
 # Define the QA system
