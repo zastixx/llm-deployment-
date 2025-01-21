@@ -1,3 +1,4 @@
+# Install necessary libraries
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from langchain.vectorstores import FAISS
@@ -12,8 +13,15 @@ from dotenv import load_dotenv, find_dotenv
 # Load environment variables
 load_dotenv(find_dotenv())
 
+# Initialize Flask app
 app = Flask(__name__)
 CORS(app)  # Enable CORS for cross-origin requests
+
+# Function to reset the conversation
+def reset_conversation():
+    """Reset the conversation state."""
+    conversation_state["messages"] = []
+    conversation_state["memory"].clear()
 
 # Initialize conversation state
 conversation_state = {
@@ -47,7 +55,7 @@ llm = Together(
     temperature=0.7,
     max_tokens=1024,
     top_k=1,
-    together_api_key=os.environ.get('T_API', '2042c792ea10764e6fdc41d0b039bbf0098b10fa74da17fe7942aceff43ba7bf')
+    together_api_key=os.environ.get('T_API', 'a487475c3bd8d69e39ee699f5b72cfeb5a0d3385866fd24182b96830131212d2')
 )
 
 # Define the QA system
@@ -58,31 +66,35 @@ qa = ConversationalRetrievalChain.from_llm(
     combine_docs_chain_kwargs={'prompt': prompt}
 )
 
-@app.route("/chat", methods=["POST"])
+# API endpoint for chat
+@app.route('/chat', methods=['POST'])
 def chat():
     data = request.json
-    user_input = data.get("message", "")
+    user_input = data.get("question", "")
+
     if not user_input:
-        return jsonify({"error": "Message is required"}), 400
+        return jsonify({"error": "No question provided"}), 400
+
+    # Append user input to conversation
+    conversation_state["messages"].append({"role": "user", "content": user_input})
 
     # Generate response
     result = qa.invoke(input=user_input)
 
-    # Append to conversation state
-    conversation_state["messages"].append({"role": "user", "content": user_input})
+    # Append assistant's response to conversation
     conversation_state["messages"].append({"role": "assistant", "content": result["answer"]})
 
-    # Return the assistant's response
-    return jsonify({"response": result["answer"]})
+    return jsonify({
+        "response": result["answer"],
+        "note": "⚠️ Note: Information provided may be inaccurate."
+    })
 
-
-@app.route("/reset", methods=["POST"])
+# API endpoint to reset the conversation
+@app.route('/reset', methods=['POST'])
 def reset():
-    """Reset the conversation state."""
-    conversation_state["messages"] = []
-    conversation_state["memory"].clear()
+    reset_conversation()
     return jsonify({"message": "Conversation reset successfully."})
 
-
-if __name__ == "__main__":
-    app.run(debug=True)
+# Run the Flask app
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
